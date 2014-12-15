@@ -9,6 +9,7 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
 from nav_msgs.msg import Odometry
 
+<<<<<<< HEAD
 
 """""""""""""""""""""
 To do:
@@ -39,8 +40,6 @@ class BallFinder:
 		#self.odom = None
 
 		#self.top_cutoff = .9
-
-
 
 		#self.found_lines = np.zeros((480, 640,3), np.uint8)
 		#self.image = cv2.imread("StopSign16in.png")
@@ -80,6 +79,28 @@ class BallFinder:
 			# cv2.waitKey(2000)
 
 			#Color contouring
+			#print hsv[y][x]
+
+	def detectBall(self):
+	 	if self.image != None:
+	 		frame = self.image.copy()
+	 		cv2.imshow("CAM",frame)	
+			img = cv2.medianBlur(frame,5)
+			#img = self.bridge.cv2_to_imgmsg(img,"bgr8")
+			cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+
+			circles = cv2.HoughCircles(cimg,cv.CV_HOUGH_GRADIENT,1,50,param1=60,param2=60,minRadius=50,maxRadius=200)
+			circles = np.uint16(np.around(circles))
+			if circles != None:
+				for i in circles[0,:]:
+					# draw the outer circle
+					cv2.circle(cimg,(i[0],i[1]),i[2],(0,255,0),2)
+					# draw the center of the circle
+					cv2.circle(cimg,(i[0],i[1]),2,(0,0,255),3)
+
+			cv2.imshow('detected circles',cimg)
+			cv2.waitKey(2000)
+
 	 		# Convert BGR to HSV
 	 		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -118,7 +139,6 @@ class BallFinder:
 			# [178,204,200]
 			# [178,200,196]
 
-
 			#HSV range {0-180, 0-255, 0-255}
 
 			# #Blue Ball - Need to adjust ranges
@@ -126,6 +146,7 @@ class BallFinder:
 			# blue_upper = np.array([125, 255, 255])
 
 			# Green Ball - need to adjust ranges
+
 			# green_lower = np.array([59, 200, 15])
 			# # green_upper = np.array([75, 255, 150])
 
@@ -175,6 +196,9 @@ class BallFinder:
 			# [60, 255, 56]
 			# [67, 255, 93]
 
+			# green_lower = np.array([35, 100, 100])
+			# green_upper = np.array([90, 255, 255])
+
 			# Yellow Ball - copy pasted ranges from green ball
 			# yellow_lower = np.array([35, 100, 100])
 			# yellow_upper = np.array([90, 255, 255])
@@ -185,6 +209,8 @@ class BallFinder:
 			# green_mask = cv2.inRange(hsv, green_lower, green_upper)
 			# yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
 			mask = cv2.inRange(hsv, red_lower, red_upper)
+
+			#mask_resize = cv2.resize(mask, (800, 800))
 
 			contours, heiarchy = cv2.findContours(mask,1,2)
 			# redContours, redHeiarchy = cv2.findContours(red_mask,1,2)
