@@ -80,54 +80,75 @@ class BallFinder:
 	 		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
 			# #Red Ball
-			# red_lower = np.array([0, 100, 100])
-			# red_upper = np.array([10, 255, 255])
+			red_lower = np.array([0, 100, 100])
+			red_upper = np.array([10, 255, 255])
 
 			#HSV range {0-180, 0-255, 0-255}
 
 			# #Blue Ball
-			# blue_lower = np.array([80, 100, 0])
-			# blue_upper = np.array([100, 255, 100])
+			blue_lower = np.array([80, 100, 0])
+			blue_upper = np.array([100, 255, 100])
 
 			# Green Ball - need to adjust ranges
-
-			# green_lower = np.array([60, 100, 20])
-			# green_upper = np.array([70, 255, 150])
+			green_lower = np.array([60, 100, 20])
+			green_upper = np.array([70, 255, 150])
 
 			# Yellow Ball
-			# yellow_lower = np.array([25, 250, 130])
-			# yellow_upper = np.array([30, 255, 255])
+			yellow_lower = np.array([25, 250, 130])
+			yellow_upper = np.array([30, 255, 255])
 
 			# Threshold the HSV image to get only desired colors
-			# red_mask = cv2.inRange(hsv, red_lower, red_upper)
-			# blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
-			# green_mask = cv2.inRange(hsv, green_lower, green_upper)
-			# yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
-			mask = cv2.inRange(hsv, red_lower, red_upper)
+			red_mask = cv2.inRange(hsv, red_lower, red_upper)
+			blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
+			green_mask = cv2.inRange(hsv, green_lower, green_upper)
+			yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+			# mask = cv2.inRange(hsv, red_lower, red_upper)
 
-			contours, heiarchy = cv2.findContours(mask,1,2)
-			# redContours, redHeiarchy = cv2.findContours(red_mask,1,2)
-			# blueContours, blueHeiarchy = cv2.findContours(blue_mask,1,2)
-			# greenContours, greenHeiarchy = cv2.findContours(green_mask,1,2)
-			# yellowContours, yellowHeiarchy = cv2.findContours(yellow_mask,1,2)
+			""""" Look for the colors with the given ranges"""
+			# contours, heiarchy = cv2.findContours(mask,1,2)
+			redContours, redHeiarchy = cv2.findContours(red_mask,1,2)
+			blueContours, blueHeiarchy = cv2.findContours(blue_mask,1,2)
+			greenContours, greenHeiarchy = cv2.findContours(green_mask,1,2)
+			yellowContours, yellowHeiarchy = cv2.findContours(yellow_mask,1,2)
 
-			if (len(contours) > 0):
+
+			if (len(redContours) > 0 or len(greenContours)>0):
 			# if(len(redContours) > 0 or len(blueContours) > 0 or len(greenContours) > 0 or len(yellowContours)>0):
 				# print "found something"
-				contour = max(contours, key=lambda x:cv2.contourArea(x))
-				cv2.drawContours(frame,contour,-1,(0,255,0))
+				red_contour = max(redContours, key=lambda x:cv2.contourArea(x))
+				cv2.drawContours(frame,red_contour,-1,(0,255,0))
+				green_contour = max (greenContours, key=lambda x:cv2.contourArea(x))
+				cv2.drawContours(frame,green_contour, -1, (0,255,0))
+				blue_contour = max (blueContours, key=lambda x:cv2.contourArea(x))
+				cv2.drawContours(frame,blue_contour, -1, (0,255,0))
+				yellow_contour = max (yellowContours, key=lambda x:cv2.contourArea(x))
+				cv2.drawContours(frame,yellow_contour, -1, (0,255,0))
+				print "contour"
+				print red_contour
 
 				# box = cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),0)
 
-				#create the rectangle around the stop sign
-				x,y,w,h = cv2.boundingRect(contour)
+				#draw a rectangle around the highest color regions
+				x,y,w,h = cv2.boundingRect(red_contour)
 				box = cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
 				#extract rectangle width
 				#draw Rectangle
 				cv2.drawContours(frame,[box],0,(0,0,255),2)
 
+				x,y,w,h = cv2.boundingRect(green_contour)
+				box = cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
+				cv2.drawContours(frame,[box],0,(0,0,255),2)
+
+				x,y,w,h = cv2.boundingRect(blue_contour)
+				box = cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0), 2)
+				cv2.drawContours(frame,[box], 0, (0, 0, 255), 2)
+
+				x,y,w,h = cv2.boundingRect(yellow_contour)
+				box = cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0), 2)
+				cv2.drawContours(frame,[box], 0, (0, 0, 255), 2)
+
 				cv2.imshow("CAM",frame)
-				cv2.imshow("mask",mask)
+				cv2.imshow("mask",red_mask)
 				cv2.waitKey(500)
 
 				# distancei = (w - 700.0)/-15.0
