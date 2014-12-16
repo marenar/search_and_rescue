@@ -2,6 +2,7 @@
 import roslib; roslib.load_manifest('visualization_marker_tutorials')
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
+from tf.transformations import euler_from_quaternion
 import math
 import rospy
 import cv2
@@ -9,7 +10,7 @@ import cv2.cv as cv
 import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from nav_msgs.msg import Odometry
 
 """""""""""""""""""""
@@ -32,13 +33,14 @@ class BallFinder:
 		rospy.init_node('register')
 		markerPublisher = rospy.Publisher('visualization_marker_tutorials', MarkerArray)
 		rospy.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.update_image)
-		rospy.pose_sub = rospy.Subscriber('slam_out_pose')
+		rospy.pose_sub = rospy.Subscriber('slam_out_pose',PoseStamped,self.update_pose)
 		markerArray = MarkerArray()
 		#self.cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		#rospy.init_node('oodometry', anonymous=True) #make node 
 		#rospy.Subscriber('odom',Odometry,Position)
 		self.bridge = CvBridge()
 		self.image = None
+		self.pose = None
 		self.cmd = Twist()
 		#self.stop = False
 		#self.pose = odom.pose.pose.position
@@ -48,6 +50,9 @@ class BallFinder:
 
 		#self.found_lines = np.zeros((480, 640,3), np.uint8)
 		#self.image = cv2.imread("StopSign16in.png")
+
+	def update_pose(self,msg):
+		self.pose = msg.pose
 
 	#update_rviz publishes the markers where the balls have been found.
 	#it expects to recieve the balls coordinates as a list: [coordinate_x, coordinate_y]
@@ -89,6 +94,28 @@ class BallFinder:
 		markerArray.markers.append(marker)
 		publisher.publish(markerArray)
 
+	#besides self expects the diameter of the ball in pixels(based on circle transform)
+	#Also expects the X-Y coordinates of the ball in the camera frame
+	#returns the real map location of detected balls
+	def get_distance(self,diameter,ballCenter):
+		#the field of view equals the distance from the neato
+		#the pixel width of the screen is 640
+		pixels_x = 640.0 # the width, in pixels, of the image
+		initialDiameter = 22.6 # diameter, in cm, of the physical ball
+		y_offset = (pixels_x * initialDiameter) / diameter # distance in cm in the y direction relative to robot
+		pixelDist = distance_y / pixels_x # cm/pixel
+		x_offset = (((pixels_x/2.0) - ballCenter[0])*pixelDist) #X offset from center of camera in cm + is right - is left
+		total_offset = math.sqrt(x**2 + y_offset**2)
+		robot_ball_theta = math.atan2(y_offset,x_offset) #angle of ball relative to robot
+		update_pose()
+		rotation = (pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
+		euler_angle = euler_from_quaternion(rotation)
+		robot_theta =euler_angle[2] #angle of robot
+		ball_theta = robot_theta + ball_theta  #angle of ball relative to map
+		x_distance = total_offset * math.sin(ball_theta)  #distance to ball in map reference
+		y_distance = total_offset * math.cos(ball_theta)  #distance to ball in map reference
+		location = [pose.orientation.x + x_distance, pose.orientation.y + y_distance]
+		return location
 
 	def update_image(self,msg):
 		try:
@@ -217,6 +244,7 @@ class BallFinder:
 
 		r=rospy.Rate(10)
 		while not rospy.is_shutdown():
+				self.update_pose()
 
 				self.detectBall()
 
