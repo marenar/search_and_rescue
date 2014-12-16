@@ -17,7 +17,7 @@ class LineFinder:
 		if event == cv2.EVENT_LBUTTONDOWN:
 			hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 			print "hsv:", hsv[y][x]
-			print "rgb:", frame[y][x]
+			print "rgb:", self.image[y][x]
 	def dostuff(self):
 		while(frame != None):
 			cv2.imshow("CAM",frame)	
