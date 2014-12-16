@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-
+import roslib; roslib.load_manifest('visualization_marker_tutorials')
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
+import math
 import rospy
 import cv2
 import cv2.cv as cv
@@ -26,7 +29,11 @@ Color detection - make more robust/get accurate ranges based off of robot
 class BallFinder:
 	def __init__(self):
 		rospy.init_node('line_finder', anonymous = True)
+		rospy.init_node('register')
+		markerPublisher = rospy.Publisher('visualization_marker_tutorials', MarkerArray)
 		rospy.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.update_image)
+		rospy.pose_sub = rospy.Subscriber('slam_out_pose')
+		markerArray = MarkerArray()
 		#self.cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		#rospy.init_node('oodometry', anonymous=True) #make node 
 		#rospy.Subscriber('odom',Odometry,Position)
@@ -41,6 +48,47 @@ class BallFinder:
 
 		#self.found_lines = np.zeros((480, 640,3), np.uint8)
 		#self.image = cv2.imread("StopSign16in.png")
+
+	#update_rviz publishes the markers where the balls have been found.
+	#it expects to recieve the balls coordinates as a list: [coordinate_x, coordinate_y]
+	#also expects to be told the ball colour as a lower-case string ie: "red"
+	def update_rviz(ball_coordinates, ball_colour):
+		marker = Marker()
+		marker.id = len(markerArray)
+		marker.header.frame_id = "/map"
+		marker.type = marker.SPHERE
+		marker.action = marker.ADD
+		marker.scale.x = .2
+		marker.scale.y = .2
+		marker.scale.z = .2
+		marker.color.a = 1.0
+		if(ball_colour == "red"):
+			marker.color.r = 0.0
+			marker.color.g = 1.0
+			marker.color.b = 0.0
+		elif(ball_colour == "blue"):
+			marker.color.r = 1.0
+			marker.color.g = 0.0
+			marker.color.b = 0.0
+		elif(ball_colour == "green"):
+			marker.color.r = 0.0
+			marker.color.g = 0.0
+			marker.color.b = 1.0
+		elif(ball_colour == "yellow")
+			marker.color.r = 1.0
+			marker.color.g = 1.0
+			marker.color.b = 0.0
+		else:
+			marker.color.r = 0.0
+			marker.color.g = 0.0
+			marker.color.b = 0.0
+		marker.pose.orientation.w = 1.0
+		marker.pose.position.x = ball_coordinates[0]
+		marker.pose.position.y = ball_coordinates[1]
+		marker.pose.position.z = .1
+		markerArray.markers.append(marker)
+		publisher.publish(markerArray)
+
 
 	def update_image(self,msg):
 		try:
@@ -144,6 +192,7 @@ class BallFinder:
 	def run(self):
 		cv2.namedWindow("CAM")
 		cv2.setMouseCallback("CAM",self.on_mouse)
+
 
 		r=rospy.Rate(10)
 		while not rospy.is_shutdown():
