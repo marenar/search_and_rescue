@@ -24,8 +24,6 @@ class LineFinder:
 
 		self.top_cutoff = .9
 
-
-
 		#self.found_lines = np.zeros((480, 640,3), np.uint8)
 		self.image = cv2.imread("StopSign16in.png")
 
@@ -47,7 +45,6 @@ class LineFinder:
 			frame = self.image.copy()
 			#cv2.imshow("CAM",frame)	
 
-			
 			# Convert BGR to HSV
 			hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
