@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-
+import roslib; roslib.load_manifest('visualization_marker_tutorials')
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
+import math
 import rospy
 import cv2
 import cv2.cv as cv
@@ -25,7 +28,11 @@ Rate of expansion on the field of view is x2
 class BallFinder:
 	def __init__(self):
 		rospy.init_node('line_finder', anonymous = True)
+		rospy.init_node('register')
+		markerPublisher = rospy.Publisher('visualization_marker_tutorials', MarkerArray)
 		rospy.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.update_image)
+		rospy.pose_sub = rospy.Subscriber('slam_out_pose')
+		markerArray = MarkerArray()
 		#self.cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		#rospy.init_node('oodometry', anonymous=True) #make node 
 		#rospy.Subscriber('odom',Odometry,Position)
@@ -95,7 +102,7 @@ class BallFinder:
 			print hsv[y][x]
 
 
-	def detectBall(self):
+		def detectBall(self):
 	 	if self.image != None:
 	 	 	frame = self.image.copy()
 
@@ -124,7 +131,6 @@ class BallFinder:
 			cv2.imshow('detected circles',cimg)
 
 			cv2.waitKey(200)
-
 
 			""""Color Contouring"""""
 	 		# Convert BGR to HSV
