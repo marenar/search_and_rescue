@@ -62,8 +62,9 @@ class BallFinder:
 	#it expects to recieve the balls coordinates as a list: [coordinate_x, coordinate_y]
 	#also expects to be told the ball colour as a lower-case string ie: "red"
 	def update_rviz(self,location,ball_colour):
+		colordict = {'red':0,'blue':1,'green':2,'yellow':3}
 		marker = Marker()
-		marker.id = len(self.markerArray.markers)
+		marker.id = dict.get(ball_colour)
 #		marker.id = 1
 		marker.header.frame_id = "/map"
 		marker.type = marker.SPHERE
