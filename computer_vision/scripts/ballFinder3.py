@@ -67,17 +67,17 @@ class BallFinder:
 		marker.scale.z = 0.2
 		marker.color.a = 1.0
 		if(ball_colour == "red"):
-			marker.color.r = 0.0
-			marker.color.g = 1.0
-			marker.color.b = 0.0
-		elif(ball_colour == "blue"):
 			marker.color.r = 1.0
 			marker.color.g = 0.0
 			marker.color.b = 0.0
-		elif(ball_colour == "green"):
+		elif(ball_colour == "blue"):
 			marker.color.r = 0.0
 			marker.color.g = 0.0
 			marker.color.b = 1.0
+		elif(ball_colour == "green"):
+			marker.color.r = 0.0
+			marker.color.g = 1.0
+			marker.color.b = 0.0
 		elif(ball_colour == "yellow"):
 			marker.color.r = 1.0
 			marker.color.g = 1.0
@@ -89,7 +89,7 @@ class BallFinder:
 		marker.pose.orientation.w = 1.0
 		marker.pose.position.x = location[0]
 		marker.pose.position.y = location[1]
-		print "MarkerPose:",marker.pose.position
+		#print "MarkerPose:",marker.pose.position
 		marker.pose.position.z = .1
 		self.markerArray.markers.append(marker)
 		self.markerPublisher.publish(self.markerArray)
@@ -106,15 +106,25 @@ class BallFinder:
 		pixelDist = y_offset / pixels_x # cm/pixel
 		x_offset = ((pixels_x/2.0) - ball_x)*pixelDist #X offset from center of camera in cm + is right - is left
 		total_offset = math.sqrt(x_offset**2 + y_offset**2)
+		#print "x_offset", x_offset
+		#print "y_offset", y_offset
+#		try:
 		robot_ball_theta = math.atan2(y_offset,x_offset) #angle of ball relative to robot
-		rotation = (self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w)
+		rotation = (self.pose.position.x, self.pose.position.y, self.pose.orientation.z, self.pose.orientation.w)
 		euler_angle = euler_from_quaternion(rotation)
 		robot_theta =euler_angle[2] #angle of robot
+		#print "robot_theta",robot_theta
+		#print "robot_ball_theta",robot_ball_theta
 		ball_theta = robot_theta + robot_ball_theta  #angle of ball relative to map
+		#print "ball_theta",ball_theta
 		x_distance = (total_offset * math.sin(ball_theta))/100  #distance to ball in map reference meters
 		y_distance = (total_offset * math.cos(ball_theta))/100  #distance to ball in map reference meters
-		location = [self.pose.orientation.x + x_distance, self.pose.orientation.y + y_distance]
+		location = [x_distance + self.pose.position.x, self.pose.position.y + y_distance]
+		print "hector X", self.pose.position.x
+		print "hector Y", self.pose.position.y
 		return location
+#		except:
+#			return False
 
 	def update_image(self,msg):
 		try:
@@ -131,7 +141,7 @@ class BallFinder:
 
 	def processImage(self,mask_colour,circle_frame,circle_center,i):
 		if np.sum(mask_colour) > 0:
-			circle_mask = np.zeroes(mask_colour.shape)
+			circle_mask = np.zeros(mask_colour.shape)
 			cv2.circle(circle_mask,(i[0],i[1]),i[2],255,-1)
 			combined = cv2.bitwise_and(circle_mask.astype(np.uint8),mask_colour.astype(np.uint8))
 			return (np.sum(combined)/255.0)/(math.pi*i[2]**2)
@@ -141,7 +151,11 @@ class BallFinder:
 		if 1 > max(proportion_overlap) > self.proportion_constant:
 			best_circle = np.argmax(proportion_overlap)
 			i = circles[0,best_circle,:]
-			self.update_rviz(self.get_distance(i[0],i[1],2*i[2]),iterateColour[index])
+			totalDistance = self.get_distance(i[0],i[1],2*i[2])
+			if totalDistance != False:
+				self.update_rviz(totalDistance,iterateColour[index])
+			else:
+				print "FAILED TO FIND ORIENTATION"
 
 
 	def detectBall(self):
@@ -172,7 +186,7 @@ class BallFinder:
 			#HSV range {0-180, 0-255, 0-255}
 
 			# #Blue Ball
-			blue_lower = np.array([80, 100, 0])
+			blue_lower = np.array([70, 80, 0])
 			blue_upper = np.array([100, 255, 100])
 
 			# Green Ball - need to adjust ranges
