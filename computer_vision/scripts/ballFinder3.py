@@ -30,9 +30,9 @@ Rate of expansion on the field of view is x2
 class BallFinder:
 	def __init__(self):
 		rospy.init_node('register')
+		rospy.pose_sub = rospy.Subscriber('slam_out_pose',PoseStamped,self.update_pose)
 		self.markerPublisher = rospy.Publisher('visualization_marker_array', MarkerArray)
 		rospy.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.update_image)
-		rospy.pose_sub = rospy.Subscriber('slam_out_pose',PoseStamped,self.update_pose)
 		self.markerArray = MarkerArray()
 		self.proportion_constant = 0.35 #percentage of overlap between masks required for plotting on rviz
 		#self.cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -46,14 +46,7 @@ class BallFinder:
 		self.green = False
 		self.yellow = False
 		self.blue = False
-		#self.stop = False
-		#self.pose = odom.pose.pose.position
-		#self.odom = None
 
-		#self.top_cutoff = .9
-
-		#self.found_lines = np.zeros((480, 640,3), np.uint8)
-		#self.image = cv2.imread("StopSign16in.png")
 
 	def update_pose(self,msg):
 		self.pose = msg.pose
@@ -62,10 +55,10 @@ class BallFinder:
 	#it expects to recieve the balls coordinates as a list: [coordinate_x, coordinate_y]
 	#also expects to be told the ball colour as a lower-case string ie: "red"
 	def update_rviz(self,location,ball_colour):
-		colorDict = {'red':0,'blue':1,'green':2,'yellow':3}
+		colourDict = {'red':0,'blue':1,'green':2,'yellow':3}
 		marker = Marker()
-		#marker.id = colorDict.get(ball_colour)
- 		marker.id = 1
+		marker.id = colourDict.get(ball_colour)
+#		marker.id = 1
 		marker.header.frame_id = "/map"
 		marker.type = marker.SPHERE
 		marker.action = marker.ADD
@@ -136,6 +129,20 @@ class BallFinder:
 			hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
 			print hsv[y][x]
 
+	def processImage(self,mask_colour,circle_frame,circle_center,i):
+		if np.sum(mask_colour) > 0:
+			circle_mask = np.zeroes(mask_colour.shape)
+			cv2.circle(circle_mask,(i[0],i[1]),i[2],255,-1)
+			combined = cv2.bitwise_and(circle_mask.astype(np.uint8),mask_colour.astype(np.uint8))
+			return (np.sum(combined)/255.0)/(math.pi*i[2]**2)
+
+	def validateImage(self,proportion_overlap,circles,index):
+		iterateColour = ["red","blue","green","yellow"]
+		if 1 > max(proportion_overlap) > self.proportion_constant:
+			best_circle = np.argmax(proportion_overlap)
+			i = circles[0,best_circle,:]
+			self.update_rviz(self.get_distance(i[0],i[1],2*i[2]),iterateColour[index])
+
 
 	def detectBall(self):
 	 	if self.image != None:
@@ -185,7 +192,7 @@ class BallFinder:
 			# mask = cv2.inRange(hsv, red_lower, red_upper)
 
 			cv2.imshow("mask",yellow_mask)
-
+			
 			""""" Look for the colors with the given ranges"""
 			# contours, heiarchy = cv2.findContours(mask,1,2)
 			redContours, redHeiarchy = cv2.findContours(deepcopy(red_mask),1,2)
@@ -193,36 +200,29 @@ class BallFinder:
 			greenContours, greenHeiarchy = cv2.findContours(deepcopy(green_mask),1,2)
 			yellowContours, yellowHeiarchy = cv2.findContours(deepcopy(yellow_mask),1,2)
 
+			maskArray = [red_mask,blue_mask,green_mask,yellow_mask]
+
 			if circles != None:
-				#print circles.shape
-				#print circles[0,0,:]
+
+				proportion_overlap_red = []
+				proportion_overlap_blue = []
+				proportion_overlap_green = []
+				proportion_overlap_yellow = []
 				proportion_overlap = []
+				overlord_overlap = [proportion_overlap_red,proportion_overlap_blue,proportion_overlap_green,proportion_overlap_yellow]
 				for i in circles[0,:]:
+
 					# draw the outer circle
 					circle_frame = cv2.circle(cimg,(i[0],i[1]),i[2],(0,255,0),2)
 					# draw the center of the circle
 					circle_center = cv2.circle(cimg,(i[0],i[1]),2,(0,0,255),3)
-					#if self.red = False:
-					#self.update_rviz(self.get_distance(i[0],i[1],2*i[2]),"green")
 
-					circle_mask = np.zeros(yellow_mask.shape)
-					cv2.circle(circle_mask,(i[0],i[1]),i[2],255,-1)
+					for index,item in enumerate(maskArray):
+						overlord_overlap[index].append(self.processImage(item,circle_frame,circle_center,i))
 
-					print circle_mask.dtype
+					for index,item in enumerate(overlord_overlap):
+						self.validateImage(item,circles,index)
 
-					print circle_mask.shape
-					print yellow_mask.shape
-					combined = cv2.bitwise_and(circle_mask.astype(np.uint8),yellow_mask.astype(np.uint8))
-					proportion_overlap.append( (np.sum(combined)/255.0)/(math.pi*i[2]**2) )
-					#cv2.imshow('circle_mask',combined)
-					#print circles
-					# [x coordinate, y coor, radius]
-					# print "circle x: %d circle y: %d" %(i[0], i[1])
-
-				if 1 > max(proportion_overlap) > self.proportion_constant:
-					best_circle = np.argmax(proportion_overlap)
-					i = circles[0,best_circle,:]
-					self.update_rviz(self.get_distance(i[0],i[1],2*i[2]),"yellow")
 
 			if circles== None:
 				print "found nothing"
@@ -261,20 +261,11 @@ class BallFinder:
 					x,y,w,h = cv2.boundingRect(yellow_contour)
 					box = cv2.rectangle(frame, (x,y), (x+w,y+h), (0,255,0), 2)
 					cv2.drawContours(frame,[box], 0, (0, 0, 255), 2)
-					#print "x: %d" %((x+w/2))
-					#print "y: %d" %((y+h/2))
-					# print "circle x: %d" %circles[0,:,:]
+
 
 				cv2.imshow("CAM",frame)
 				cv2.waitKey(500)
 
-				# distancei = (w - 700.0)/-15.0
-				# distancem = distancei*0.0254
-				# print "final width:", w
-				# print "D inches:", distancei
-				# print "D meters:", distancem
-				#(abs(distancem-0.4318) < 0.0254):
-				#	print "STOP in", distancem, "meters"
 
 			else:
 			# elif(len(redContours)=0 or len(blueContours)=0 or len(greenContours)=0 or len(yellowContours)=0):
