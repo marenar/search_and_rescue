@@ -37,6 +37,7 @@ class Wall_Follow:
 			print self.straight_ahead
 			# if there is an obstacle within 1 meter straight ahead, set self.avoid to True, triggering the obstacle avoidance part of the finite state controller.
 			if self.straight_ahead != 0.0 and self.straight_ahead < 0.8:
+
 				self.avoid = True
 				if len(clear_directions):
 					x = random.choice(clear_directions)
