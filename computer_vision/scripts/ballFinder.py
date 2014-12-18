@@ -147,7 +147,7 @@ class BallFinder:
 			#img = self.bridge.cv2_to_imgmsg(img,"bgr8")
 			cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
-			circles = cv2.HoughCircles(cimg,cv.CV_HOUGH_GRADIENT,1,50,param1=60,param2=50,minRadius=15,maxRadius=200)
+			circles = cv2.HoughCircles(cimg,cv.CV_HOUGH_GRADIENT,1,50,param1=60,param2=1,minRadius=15,maxRadius=200)
 			# circles = np.uint16(np.around(circles))
 
 			cv2.imshow('detected circles',cimg)
@@ -208,20 +208,21 @@ class BallFinder:
 					circle_mask = np.zeros(yellow_mask.shape)
 					cv2.circle(circle_mask,(i[0],i[1]),i[2],255,-1)
 
-					print circle_mask.dtype
+					#print circle_mask.dtype
 
-					print circle_mask.shape
-					print yellow_mask.shape
+					#print circle_mask.shape
+					#print yellow_mask.shape
 					combined = cv2.bitwise_and(circle_mask.astype(np.uint8),yellow_mask.astype(np.uint8))
 					proportion_overlap.append( (np.sum(combined)/255.0)/(math.pi*i[2]**2) )
-					#cv2.imshow('circle_mask',combined)
-					#print circles
+					cv2.imshow('circle_mask',combined)
+					print circles
 					# [x coordinate, y coor, radius]
 					# print "circle x: %d circle y: %d" %(i[0], i[1])
 
 				if 1 > max(proportion_overlap) > self.proportion_constant:
 					best_circle = np.argmax(proportion_overlap)
 					i = circles[0,best_circle,:]
+					#print proportion_overlap
 					self.update_rviz(self.get_distance(i[0],i[1],2*i[2]),"yellow")
 
 			if circles== None:

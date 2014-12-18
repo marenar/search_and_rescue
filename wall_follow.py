@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Marena Richardson, September 20, 2014. Warmup Project. 
+# Marena Richardson, December 10, 2014. Final Project 
 
 import rospy 
 import math
@@ -18,46 +18,6 @@ class Wall_Follow:
 		self.direct = 0
 		self.update = datetime.datetime.now() - datetime.timedelta(seconds = 3)
 		self.vals = []
-
-	"""
-	def scan_received(self, msg):
-		Callback function for msg of type sensor_msgs/LaserScan
-		valid_measurements = []
-		forward_measurements = []
-		print msg.ranges
-		for i in range(360):
-			# reinitialize self.avoid as False each time. This is the default value and will create wall following behavior.
-			self.avoid = False
-			try:
-				if msg.ranges[i] != 0 and msg.ranges[i] < 7:
-					valid_measurements.append(msg.ranges[i])
-					if i < 10 or i > 350:
-						forward_measurements.append(msg.ranges[i])
-			except IndexError: 
-				pass
-		if len(forward_measurements):
-			self.straight_ahead = sum(forward_measurements) / len(forward_measurements)
-			# This is the finite state controller that triggers the obstacle avoidance behavior. If the average distance straight ahead is less than 1.3,
-			# the self.avoid attribute is set to true. self.direct is set such that the robot always turns toward the direction with more free space. 
-			if self.straight_ahead < 0.7:
-				self.avoid = True
-				if msg.ranges[90] > msg.ranges[270] or msg.ranges[90] == 0:
-					self.direct = 1
-				else:
-					self.direct = -1
-				self.update = datetime.datetime.now()
-		if len(valid_measurements) and self.avoid == False:
-			# This part of the finite state controller handles the wall following by finding the closest object and its angle relative to the robot. 
-			self.distance_to_wall = min(valid_measurements)
-			self.angle_of_wall = msg.ranges.index(self.distance_to_wall)
-			if abs(msg.ranges[self.angle_of_wall - 3] - self.distance_to_wall) > 0.5 or abs(msg.ranges[self.angle_of_wall + 3 - self.distance_to_wall]) > 0.5:
-				print "YOP"
-		else:
-			self.distance_to_wall = -1.0
-			self.angle_of_wall = -1.0
-			self.straight_ahead = -1.0
-			self.direct = 1
-		"""
 
 	def scan_received(self, msg):
 		forward_measurements = []
@@ -105,6 +65,7 @@ class Wall_Follow:
 		r = rospy.Rate(12) #12 Hz
 		while not rospy.is_shutdown():
 			print "DIRECT, 90, 270", self.direct, self.vals
+			print self.straight_ahead
 			#print "TIME SINCE UPDATE", datetime.datetime.now() - self.update
 			#print "AVOID", self.avoid
 			#print "ANGLE", self.angle_of_wall

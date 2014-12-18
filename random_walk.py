@@ -26,16 +26,17 @@ class Wall_Follow:
 		self.avoid = False
 		for i in range(360):
 			try:
-				if msg.ranges[i] > 1.2 and msg.ranges[i] < 7:
+				if msg.ranges[i] > 2 and msg.ranges[i] < 7:
 					clear_directions.append(msg.ranges[i])
-				if i < 5 or i > 355:
+				if i < 10 or i > 350:
 					forward_measurements.append(msg.ranges[i])
 			except IndexError: pass
 		self.straight_ahead = sum(forward_measurements) / len(forward_measurements)
 
 		if datetime.datetime.now() - self.update > datetime.timedelta(seconds = self.time):
+			print self.straight_ahead
 			# if there is an obstacle within 1 meter straight ahead, set self.avoid to True, triggering the obstacle avoidance part of the finite state controller.
-			if self.straight_ahead != 0.0 and self.straight_ahead < 1:
+			if self.straight_ahead != 0.0 and self.straight_ahead < 0.8:
 				self.avoid = True
 				if len(clear_directions):
 					x = random.choice(clear_directions)
@@ -46,6 +47,7 @@ class Wall_Follow:
 						self.angle = math.fabs(self.angle - 2 * math.pi)
 						self.direct = -1
 				else:
+					self.degrees = 180
 					self.angle = math.pi
 					self.direct = 1
 			else:
@@ -53,16 +55,16 @@ class Wall_Follow:
 				self.direct = 0
 
 	def main(self): 
-		""" Run loop for the wall follow node """
 		pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		sub = rospy.Subscriber('/scan', LaserScan, self.scan_received)
 		rospy.init_node('wall_follow', anonymous=True)
-		r = rospy.Rate(12) #12 Hz
+		r = rospy.Rate(10) #12 Hz
 		while not rospy.is_shutdown():
 			if self.avoid == True:
 				self.time = self.angle / 0.2
-				print "ahead", self.straight_ahead
-				print "DEGREES, ANGLE, DIRECTION, TIME", self.degrees, self.angle, self.direct, self.time
+				print "DEGREES", self.degrees
+				print "TURN", self.direct
+				print "TIME", self.time
 				self.update = datetime.datetime.now()
 				print "start"
 				while datetime.datetime.now() - self.update < datetime.timedelta(seconds = self.time):

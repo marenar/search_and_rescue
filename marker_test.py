@@ -28,9 +28,9 @@ while not rospy.is_shutdown():
 		marker.scale.y = .2
 		marker.scale.z = .2
 		marker.color.a = 1.0
-		marker.color.r = 0.08
-		marker.color.g = 0.67
-		marker.color.b = 0.14
+		marker.color.r = 0.0
+		marker.color.g = 0.0
+		marker.color.b = 1.0
 		marker.pose.orientation.w = 1.0
 		marker.pose.position.x = count
 		marker.pose.position.z = .1

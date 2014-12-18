@@ -42,15 +42,10 @@ class BallFinder:
 		self.image = None
 		self.pose = None
 		self.cmd = Twist()
-		self.red = {}
-		self.blue = {}
-		self.green = {}
-		self.yellow = {}
-		red_location = None;
-		blue_location = None;
-		green_location = None;
-		yellow_location = None;
-
+		self.red = False
+		self.green = False
+		self.yellow = False
+		self.blue = False
 
 
 	def update_pose(self,msg):
@@ -59,7 +54,7 @@ class BallFinder:
 	#update_rviz publishes the markers where the balls have been found.
 	#it expects to recieve the balls coordinates as a list: [coordinate_x, coordinate_y]
 	#also expects to be told the ball colour as a lower-case string ie: "red"
-	def update_rviz(self,location,ball_colour,confidence):
+	def update_rviz(self,location,ball_colour):
 		colourDict = {'red':0,'blue':1,'green':2,'yellow':3}
 		marker = Marker()
 		marker.id = colourDict.get(ball_colour)
@@ -72,52 +67,41 @@ class BallFinder:
 		marker.scale.z = 0.2
 		marker.color.a = 1.0
 		if(ball_colour == "red"):
-			marker.color.r = 1.0
-			marker.color.g = 0.0
-			marker.color.b = 0.0
-			self.red[confidence] = location
-			max_key = max(k for k, v in self.red.iteritems())
-			#red_location = self.red[max_key]
+			if self.red == False:
+				marker.color.r = 1.0
+				marker.color.g = 0.0
+				marker.color.b = 0.0
+				self.red = location
 		elif(ball_colour == "blue"):
-			marker.color.r = 0.0
-			marker.color.g = 0.0
-			marker.color.b = 1.0
-			self.blue[confidence] = location
-			max_key = max(k for k, v in self.blue.iteritems())
-			#blue_location = self.blue[max_key]
+			if self.blue == False:
+				marker.color.r = 0.0
+				marker.color.g = 0.0
+				marker.color.b = 1.0
+				self.blue = location
 		elif(ball_colour == "green"):
-			marker.color.r = 0.0
-			marker.color.g = 1.0
-			marker.color.b = 0.0
-			self.green[confidence] = location
-			max_key = max(k for k, v in self.green.iteritems())
-			#green_location = self.green[max_key]
+			if self.green == False:
+				marker.color.r = 0.0
+				marker.color.g = 1.0
+				marker.color.b = 0.0
+				self.green = location
 		elif(ball_colour == "yellow"):
-			marker.color.r = 1.0
-			marker.color.g = 1.0
-			marker.color.b = 0.0
-			self.yellow[confidence] = location
-			max_key = max(k for k, v in self.yellow.iteritems())
-			#yellow_location = self.yellow[max_key]
+			if self.yellow == False:
+				marker.color.r = 1.0
+				marker.color.g = 1.0
+				marker.color.b = 0.0
+				self.yellow = location
 		else:
 			marker.color.r = 0.0
 			marker.color.g = 0.0
 			marker.color.b = 0.0
-
-		# markerSum = marker.color.r + marker.color.g + marker.color.b
-		# if markerSum > 0:
+		
 		marker.pose.orientation.w = 1.0
 		marker.pose.position.x = location[0]
 		marker.pose.position.y = location[1]
+		#print "MarkerPose:",marker.pose.position
 		marker.pose.position.z = .1
 		self.markerArray.markers.append(marker)
 		self.markerPublisher.publish(self.markerArray)
-		#print "red location", red_location
-		#print "blue location", blue_location
-		#print "green location", green_location
-		#print "yellow location", yellow_location
-
-
 
 	#besides self expects the diameter of the ball in pixels(based on circle transform)
 	#Also expects the X-Y coordinates of the ball in the camera frame
@@ -130,31 +114,23 @@ class BallFinder:
 		y_offset = (pixels_x * initialDiameter) / diameter # distance in cm in the y direction relative to robot
 		pixelDist = y_offset / pixels_x # cm/pixel
 		x_offset = ((pixels_x/2.0) - ball_x)*pixelDist #X offset from center of camera in cm + is right - is left
-		print "x_offset", x_offset
-		print "y_offset", y_offset
 		total_offset = math.sqrt(x_offset**2 + y_offset**2)
 		#print "x_offset", x_offset
 		#print "y_offset", y_offset
 #		try:
-		robot_ball_theta = math.atan2(x_offset,y_offset) #-angle of ball relative to robot
-		rotation = (self.pose.orientation.x, self.pose.orientation.y, self.pose.orientation.z, self.pose.orientation.w)
+		robot_ball_theta = math.atan2(y_offset,x_offset) #angle of ball relative to robot
+		rotation = (self.pose.position.x, self.pose.position.y, self.pose.orientation.z, self.pose.orientation.w)
 		euler_angle = euler_from_quaternion(rotation)
 		robot_theta =euler_angle[2] #angle of robot
 		#print "robot_theta",robot_theta
 		#print "robot_ball_theta",robot_ball_theta
-		ball_theta = robot_theta + robot_ball_theta  #angle of ball relative to map
+		ball_theta =  robot_ball_theta  #angle of ball relative to map
 		#print "ball_theta",ball_theta
-		#x_distance = (total_offset * math.sin(ball_theta))/100  #distance to ball in map reference meters
-		#y_distance = (total_offset * math.cos(ball_theta))/100  #distance to ball in map reference meters
-		x_distance = (total_offset * math.cos(ball_theta))/100  #distance to ball in map reference meters
-		y_distance = (total_offset * math.sin(ball_theta))/100  #distance to ball in map reference meters
-
-		#roughOffsetX = (y_offset/100.0) * math.cos(robot_theta)
-		#roughOffsetY = (y_offset/100.0) * math.sin(robot_theta)
-
-		location = [self.pose.position.x + x_distance, self.pose.position.y + y_distance]
-		print "location", location
-		print "robot_theta", robot_theta
+		x_distance = (total_offset * math.sin(ball_theta))/100  #distance to ball in map reference meters
+		y_distance = (total_offset * math.cos(ball_theta))/100  #distance to ball in map reference meters
+		location = [x_distance + self.pose.position.x, self.pose.position.y + y_distance]
+		print "hector X", self.pose.position.x
+		print "hector Y", self.pose.position.y
 		return location
 #		except:
 #			return False
@@ -186,7 +162,7 @@ class BallFinder:
 			i = circles[0,best_circle,:]
 			totalDistance = self.get_distance(i[0],i[1],2*i[2])
 			if totalDistance != False:
-				self.update_rviz(totalDistance,iterateColour[index],max(proportion_overlap))
+				self.update_rviz(totalDistance,iterateColour[index])
 			else:
 				print "FAILED TO FIND ORIENTATION"
 
@@ -201,7 +177,7 @@ class BallFinder:
 			#img = self.bridge.cv2_to_imgmsg(img,"bgr8")
 			cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
-			circles = cv2.HoughCircles(cimg,cv.CV_HOUGH_GRADIENT,1,50,param1=60,param2=60,minRadius=15,maxRadius=200)
+			circles = cv2.HoughCircles(cimg,cv.CV_HOUGH_GRADIENT,1,50,param1=60,param2=50,minRadius=15,maxRadius=200)
 			# circles = np.uint16(np.around(circles))
 
 			cv2.imshow('detected circles',cimg)
@@ -227,7 +203,7 @@ class BallFinder:
 			green_upper = np.array([70, 255, 150])
 
 			# Yellow Ball
-			yellow_lower = np.array([25, 200, 100])
+			yellow_lower = np.array([25, 200, 130])
 			yellow_upper = np.array([30, 256, 255])
 
 			# Threshold the HSV image to get only desired colors
